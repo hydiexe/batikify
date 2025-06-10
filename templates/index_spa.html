@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batikify</title>
+    <!-- PWA Manifest & Theme Color -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6b4f4b">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;600;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Impor Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #fdf8f2;
+            background-image: url('https://www.transparenttextures.com/patterns/subtle-grunge.png');
+        }
+        .font-serif { font-family: 'Vollkorn', serif; }
+        .batik-brown { color: #6b4f4b; }
+        .batik-darkblue { color: #1e3a8a; }
+        .bg-batik-gold { background-color: #c5a35a; }
+        .hover\:bg-batik-gold-dark:hover { background-color: #a78b4b; }
+        
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+        
+        .bottom-nav { box-shadow: 0 -4px 12px rgba(0,0,0,0.1); }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item.active { color: #c5a35a; transform: translateY(-4px); }
+        .nav-item.active .nav-text { font-weight: 600; }
+
+        .predict-tab-button {
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .predict-tab-button.active {
+            color: #1e3a8a;
+            border-bottom-color: #1e3a8a;
+            font-weight: 600;
+        }
+        .predict-tab-content { display: none; }
+        .predict-tab-content.active { display: block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            border-color: #c5a35a;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        .cropper-container { max-width: 100%; }
+        .crop-image-container img { max-width: 100%; display: block; }
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- Main Content Area -->
+    <main class="p-4 md:p-6">
+        <!-- PAGE 1: HOME -->
+        <div id="page-home" class="page-content active">
+            <div class="text-center p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-batik-gold/20">
+                <img src="{{ url_for('static', filename='icons/icon-192x192.png') }}" alt="Logo Batikify" class="mx-auto h-32 w-32 rounded-full mb-6">
+                <h1 class="font-serif text-4xl md:text-5xl font-bold batik-brown">Selamat Datang</h1>
+                <p class="text-gray-600 mt-2 text-lg">Di Aplikasi Batikify</p>
+                <p class="mt-8 text-gray-700 max-w-prose mx-auto">
+                    Aplikasi ini dirancang untuk membantu Anda mengidentifikasi berbagai motif batik yang ada di Indonesia. Buka halaman "Predict" untuk mulai mencoba!
+                </p>
+            </div>
+        </div>
+
+        <!-- PAGE 2: PREDICT -->
+        <div id="page-predict" class="page-content">
+            <div class="w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 md:p-10 border-2 border-batik-gold/20">
+                <div class="text-center mb-8">
+                    <h1 class="font-serif text-4xl font-bold batik-brown">Identifikasi Batik</h1>
+                    <p class="text-gray-600 mt-2">Pilih metode identifikasi di bawah ini.</p>
+                </div>
+                
+                <div class="flex border-b border-gray-300 mb-6">
+                    <button data-predict-tab="upload" class="predict-tab-button active flex-1 py-2 px-4">Unggah File</button>
+                    <button data-predict-tab="webcam" class="predict-tab-button flex-1 py-2 px-4">Gunakan Kamera</button>
+                </div>
+
+                <!-- Upload Tab Content -->
+                <div id="predict-tab-upload" class="predict-tab-content active">
+                    <div id="upload-area" class="border-2 border-dashed border-gray-400 rounded-lg p-8 text-center bg-transparent cursor-pointer transition-colors">
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                        <label for="file-input" class="cursor-pointer">
+                            <img src="{{ url_for('static', filename='canting.svg') }}" alt="Ikon Unggah Canting" class="mx-auto h-16 w-16 text-gray-500">
+                            <p class="mt-4 text-lg batik-brown">
+                                <span class="font-semibold batik-darkblue">Drag & Drop gambar, Paste,</span> atau klik untuk unggah
+                            </p>
+                        </label>
+                    </div>
+                    <div id="image-preview-container" class="mt-6 text-center hidden">
+                        <img id="image-preview" src="#" alt="Pratinjau Gambar" class="max-h-72 mx-auto rounded-lg shadow-lg border-4 border-white"/>
+                        <button id="predict-upload-btn" class="mt-6 w-full bg-batik-gold text-white font-bold text-xl py-3 px-4 rounded-lg hover:bg-batik-gold-dark transition-all duration-300 shadow-lg">Identifikasi Motif</button>
+                    </div>
+                </div>
+
+                <!-- Webcam Tab Content -->
+                <div id="predict-tab-webcam" class="predict-tab-content">
+                    <div id="webcam-viewfinder">
+                        <div class="relative bg-black rounded-lg overflow-hidden shadow-inner">
+                            <video id="webcam" class="w-full h-auto" autoplay muted playsinline></video>
+                            <canvas id="canvas" class="hidden"></canvas>
+                        </div>
+                        <div class="flex space-x-4 mt-4">
+                            <button id="start-camera-btn" class="flex-1 bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700">Mulai Kamera</button>
+                            <button id="capture-btn" class="flex-1 bg-batik-gold text-white font-bold py-3 px-4 rounded-lg hover:bg-batik-gold-dark disabled:bg-gray-400" disabled>Ambil Gambar</button>
+                        </div>
+                    </div>
+                    <div id="webcam-cropper-container" class="hidden">
+                        <div class="crop-image-container">
+                             <img id="crop-preview-image" src="#" alt="Pratinjau Crop">
+                        </div>
+                        <div class="flex space-x-4 mt-4">
+                            <button id="retake-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600">Ambil Ulang</button>
+                            <button id="crop-predict-btn" class="flex-1 bg-batik-gold text-white font-bold py-3 px-4 rounded-lg hover:bg-batik-gold-dark">Identifikasi Hasil Crop</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result/Loading sections -->
+                <div id="loading" class="text-center py-6 hidden"><div class="spinner h-10 w-10 border-4 rounded-full mx-auto"></div><p class="mt-4 text-lg batik-brown">Menganalisis gambar...</p></div>
+                <div id="result" class="mt-8 text-center p-6 bg-green-50/50 border-2 border-green-300 rounded-lg hidden"><h3 class="font-serif text-xl font-semibold batik-brown">Hasil Prediksi:</h3><p id="prediction-text" class="font-serif text-4xl font-bold text-green-800 mt-2"></p><p id="confidence-text" class="text-md text-gray-700 mt-1"></p></div>
+                <div id="error" class="mt-8 text-center p-6 bg-red-50/50 border-2 border-red-300 rounded-lg hidden"><h3 class="font-serif text-xl font-semibold text-red-800">Terjadi Kesalahan</h3><p id="error-text" class="text-md text-red-700 mt-1"></p></div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: INFO -->
+        <div id="page-info" class="page-content">
+             <div class="text-center p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-batik-gold/20">
+                <h1 class="font-serif text-4xl md:text-5xl font-bold batik-brown">Informasi</h1>
+                <p class="text-gray-600 mt-2 text-lg">Tentang Aplikasi & Batik</p>
+                <div class="mt-8 text-left max-w-prose mx-auto space-y-4 text-gray-700">
+                    <p>lorem ipsum aja.</p>
+                    <h2 class="font-serif text-2xl batik-brown pt-4">Cara Kerja</h2>
+                    <p>Model deep learning pada aplikasi ini dilatih menggunakan dataset gambar batik untuk mempelajari pola dan ciri khas dari setiap motif. Saat Anda mengunggah gambar, model akan menganalisisnya dan memberikan prediksi motif yang paling sesuai (menurut dia sih hehe).</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm h-20 flex justify-around items-center">
+        <button data-page="home" class="nav-item active flex flex-col items-center justify-center text-gray-600"><svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span class="nav-text text-xs mt-1">Home</span></button>
+        <button data-page="predict" class="nav-item flex flex-col items-center justify-center text-gray-600"><svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nav-text text-xs mt-1">Predict</span></button>
+        <button data-page="info" class="nav-item flex flex-col items-center justify-center text-gray-600"><svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="nav-text text-xs mt-1">Info</span></button>
+    </nav>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Registrasi Service Worker PWA ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                    console.log('Pendaftaran ServiceWorker berhasil dengan cakupan: ', registration.scope);
+                }, err => {
+                    console.log('Pendaftaran ServiceWorker gagal: ', err);
+                });
+            });
+        }
+
+        // --- Variabel Global ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = document.querySelectorAll('.page-content');
+        const predictTabButtons = document.querySelectorAll('.predict-tab-button');
+        const predictTabs = document.querySelectorAll('.predict-tab-content');
+        let stream;
+        let cropper;
+        
+        // --- Logika Navigasi ---
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetPageId = `page-${item.dataset.page}`;
+                pages.forEach(page => page.classList.toggle('active', page.id === targetPageId));
+                navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.page === item.dataset.page));
+                stopCameraAndCropper();
+            });
+        });
+
+        predictTabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTabId = `predict-tab-${button.dataset.predictTab}`;
+                predictTabs.forEach(tab => tab.classList.toggle('active', tab.id === targetTabId));
+                predictTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.predictTab === button.dataset.predictTab));
+                stopCameraAndCropper();
+            });
+        });
+        
+        function stopCameraAndCropper() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            fileInput.value = ''; // Reset input file
+            document.getElementById('webcam-viewfinder').style.display = 'block';
+            document.getElementById('webcam-cropper-container').classList.add('hidden');
+        }
+
+        // --- Elemen Prediksi ---
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const predictUploadBtn = document.getElementById('predict-upload-btn');
+        
+        const webcam = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const captureBtn = document.getElementById('capture-btn');
+
+        const webcamCropperContainer = document.getElementById('webcam-cropper-container');
+        const cropPreviewImage = document.getElementById('crop-preview-image');
+        const retakeBtn = document.getElementById('retake-btn');
+        const cropPredictBtn = document.getElementById('crop-predict-btn');
+
+        const loading = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+        const predictionText = document.getElementById('prediction-text');
+        const confidenceText = document.getElementById('confidence-text');
+        const errorText = document.getElementById('error-text');
+
+        // --- Event Listener ---
+        // **BUG FIX:** Hapus event listener 'click' pada uploadArea.
+        // Biarkan elemen <label> yang menangani pembukaan dialog file secara alami.
+        // uploadArea.addEventListener('click', () => fileInput.click()); // <-- BARIS INI DIHAPUS
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+        
+        // Listener untuk Drag and Drop
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); uploadArea.classList.remove('drag-over'); });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault(); e.stopPropagation(); uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+
+        // Listener untuk Paste
+        document.addEventListener('paste', (e) => {
+            const predictPage = document.getElementById('page-predict');
+            const uploadTab = document.getElementById('predict-tab-upload');
+            if (predictPage.classList.contains('active') && uploadTab.classList.contains('active') && e.clipboardData.files.length > 0) {
+                handleFile(e.clipboardData.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (file && file.type.startsWith('image/')) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    resultDiv.classList.add('hidden');
+                    errorDiv.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        predictUploadBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file, file.name);
+                getPrediction(formData);
+            } else {
+                console.error("Tidak ada file yang dipilih untuk diunggah.");
+            }
+        });
+
+        startCameraBtn.addEventListener('click', async () => {
+            errorDiv.classList.add('hidden');
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("API kamera tidak didukung oleh browser ini.");
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                webcam.srcObject = stream;
+                captureBtn.disabled = false;
+            } catch (err) {
+                handleWebcamError(err);
+            }
+        });
+
+        captureBtn.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = webcam.videoWidth; canvas.height = webcam.videoHeight;
+            context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            cropPreviewImage.src = canvas.toDataURL('image/jpeg');
+            document.getElementById('webcam-viewfinder').style.display = 'none';
+            webcamCropperContainer.classList.remove('hidden');
+            cropper = new Cropper(cropPreviewImage, { aspectRatio: 1, viewMode: 1, background: false, autoCropArea: 0.8 });
+        });
+        
+        retakeBtn.addEventListener('click', () => {
+            if (cropper) cropper.destroy();
+            cropper = null;
+            document.getElementById('webcam-viewfinder').style.display = 'block';
+            webcamCropperContainer.classList.add('hidden');
+        });
+
+        cropPredictBtn.addEventListener('click', () => {
+            if (!cropper) return;
+            const croppedCanvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
+            const formData = new FormData();
+            formData.append('image_data', croppedCanvas.toDataURL('image/jpeg'));
+            getPrediction(formData);
+        });
+        
+        // --- Fungsi Bantuan ---
+        function handleWebcamError(err) {
+            console.error("Kesalahan saat mengakses webcam: ", err);
+            let message = "Terjadi kesalahan saat mengakses kamera.";
+            if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                message = "Izin akses kamera ditolak. Silakan izinkan di pengaturan browser Anda.";
+            } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+                message = "Tidak ada perangkat kamera yang ditemukan.";
+            } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+                message = "Kamera sedang digunakan oleh aplikasi lain.";
+            } else if (err.name === "SecurityError") {
+                message = "Akses kamera diblokir karena halaman tidak aman (bukan HTTPS atau localhost).";
+            }
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        async function getPrediction(formData) {
+            loading.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                predictionText.textContent = data.prediction;
+                confidenceText.textContent = `Tingkat Keyakinan: ${data.confidence}`;
+                resultDiv.classList.remove('hidden');
+            } catch (error) {
+                console.error('Kesalahan saat prediksi:', error);
+                errorText.textContent = error.message || "Gagal menghubungi server.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+    });
+    </script>
+</body>
+</html>

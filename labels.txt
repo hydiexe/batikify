@@ -1,0 +1,20 @@
+0 Batik Betawi
+1 Batik Bokor Kencono
+2 Batik Buketan
+3 Batik Dayak
+4 Batik Jlamprang
+5 Batik Kawung
+6 Batik Liong
+7 Batik Megamendung
+8 Batik Parang
+9 Batik Sekarjagat
+10 Batik Sidoluhur
+11 Batik Sidomukti
+12 Batik Sidomulyo
+13 Batik Singa Barong
+14 Batik Srikaton
+15 Batik Tribusono
+16 Batik Tujuh Rupa
+17 Batik Tuntrum
+18 Batik Wahyu Tumurun
+19 Batik Wirasat
